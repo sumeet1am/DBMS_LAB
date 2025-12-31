@@ -1,3 +1,4 @@
+DROP DATABASE IF EXISTS InsuranceDB;
 CREATE DATABASE InsuranceDB;
 USE InsuranceDB;
 
@@ -23,8 +24,8 @@ CREATE TABLE OWNS (
     driver_id VARCHAR(20),
     regno VARCHAR(20),
     PRIMARY KEY (driver_id, regno),
-    FOREIGN KEY (driver_id) REFERENCES PERSON(driver_id),
-    FOREIGN KEY (regno) REFERENCES CAR(regno)
+    FOREIGN KEY (driver_id) REFERENCES PERSON(driver_id) ON DELETE CASCADE,
+    FOREIGN KEY (regno) REFERENCES CAR(regno) ON DELETE CASCADE
 );
 
 CREATE TABLE PARTICIPATED (
@@ -33,9 +34,9 @@ CREATE TABLE PARTICIPATED (
     report_number INT,
     damage_amount INT,
     PRIMARY KEY (driver_id, regno, report_number),
-    FOREIGN KEY (driver_id) REFERENCES PERSON(driver_id),
-    FOREIGN KEY (regno) REFERENCES CAR(regno),
-    FOREIGN KEY (report_number) REFERENCES ACCIDENT(report_number)
+    FOREIGN KEY (driver_id) REFERENCES PERSON(driver_id) ON DELETE CASCADE,
+    FOREIGN KEY (regno) REFERENCES CAR(regno) ON DELETE CASCADE,
+    FOREIGN KEY (report_number) REFERENCES ACCIDENT(report_number) ON DELETE CASCADE
 );
 
 INSERT INTO PERSON VALUES
@@ -90,8 +91,11 @@ INSERT INTO ACCIDENT VALUES
 
 DELETE FROM CAR
 WHERE regno IN (
-    SELECT regno FROM OWNS
-    WHERE driver_id = (SELECT driver_id FROM PERSON WHERE name='Smith')
+    SELECT regno
+    FROM OWNS
+    WHERE driver_id = (
+        SELECT driver_id FROM PERSON WHERE name='Smith'
+    )
 ) AND model='Mazda';
 
 UPDATE PARTICIPATED
