@@ -1,159 +1,128 @@
-CREATE TABLE IF NOT EXISTS person (
-driver_id VARCHAR(255) NOT NULL,
-driver_name TEXT NOT NULL,
-address TEXT NOT NULL,
-PRIMARY KEY (driver_id)
+CREATE DATABASE InsuranceDB;
+USE InsuranceDB;
+
+CREATE TABLE PERSON (
+    driver_id VARCHAR(20) PRIMARY KEY,
+    name VARCHAR(50),
+    address VARCHAR(100)
 );
 
-CREATE TABLE IF NOT EXISTS car (
-reg_no VARCHAR(255) NOT NULL,
-model TEXT NOT NULL,
-c_year INTEGER,
-PRIMARY KEY (reg_no)
+CREATE TABLE CAR (
+    regno VARCHAR(20) PRIMARY KEY,
+    model VARCHAR(50),
+    year INT
 );
 
-CREATE TABLE IF NOT EXISTS accident (
-report_no INTEGER NOT NULL,
-accident_date DATE,
-location TEXT,
-PRIMARY KEY (report_no)
+CREATE TABLE ACCIDENT (
+    report_number INT PRIMARY KEY,
+    acc_date DATE,
+    location VARCHAR(100)
 );
 
-CREATE TABLE IF NOT EXISTS owns (
-driver_id VARCHAR(255) NOT NULL,
-reg_no VARCHAR(255) NOT NULL,
-FOREIGN KEY (driver_id) REFERENCES person(driver_id) ON DELETE CASCADE,
-FOREIGN KEY (reg_no) REFERENCES car(reg_no) ON DELETE CASCADE
+CREATE TABLE OWNS (
+    driver_id VARCHAR(20),
+    regno VARCHAR(20),
+    PRIMARY KEY (driver_id, regno),
+    FOREIGN KEY (driver_id) REFERENCES PERSON(driver_id),
+    FOREIGN KEY (regno) REFERENCES CAR(regno)
 );
 
-CREATE TABLE IF NOT EXISTS participated (
-driver_id VARCHAR(255) NOT NULL,
-reg_no VARCHAR(255) NOT NULL,
-report_no INTEGER NOT NULL,
-damage_amount FLOAT NOT NULL,
-FOREIGN KEY (driver_id) REFERENCES person(driver_id) ON DELETE CASCADE,
-FOREIGN KEY (reg_no) REFERENCES car(reg_no) ON DELETE CASCADE,
-FOREIGN KEY (report_no) REFERENCES accident(report_no)
+CREATE TABLE PARTICIPATED (
+    driver_id VARCHAR(20),
+    regno VARCHAR(20),
+    report_number INT,
+    damage_amount INT,
+    PRIMARY KEY (driver_id, regno, report_number),
+    FOREIGN KEY (driver_id) REFERENCES PERSON(driver_id),
+    FOREIGN KEY (regno) REFERENCES CAR(regno),
+    FOREIGN KEY (report_number) REFERENCES ACCIDENT(report_number)
 );
 
 INSERT INTO PERSON VALUES
-("D111", "Driver_1", "Kuvempunagar, Mysuru"),
-("D222", "Smith", "JP Nagar, Mysuru"),
-("D333", "Driver_3", "Udaygiri, Mysuru"),
-("D444", "Driver_4", "Rajivnagar, Mysuru"),
-("D555", "Driver_5", "Vijayanagar, Mysore");
+('D1','Smith','Bangalore'),
+('D2','John','Mysore'),
+('D3','Alice','Chennai'),
+('D4','Bob','Hyderabad'),
+('D5','David','Pune');
 
 INSERT INTO CAR VALUES
-("KA-20-AB-4223", "Swift", 2020),
-("KA-20-BC-5674", "Mazda", 2017),
-("KA-21-AC-5473", "Alto", 2015),
-("KA-21-BD-4728", "Triber", 2019),
-("KA-09-MA-1234", "Tiago", 2018);
+('KA09MA1234','Mazda',2019),
+('KA01AB1111','Honda',2018),
+('KA02CD2222','Toyota',2020),
+('KA03EF3333','Hyundai',2021),
+('KA04GH4444','Ford',2017);
 
 INSERT INTO ACCIDENT VALUES
-(43627, "2020-04-05", "Nazarbad, Mysuru"),
-(56345, "2019-12-16", "Gokulam, Mysuru"),
-(63744, "2020-05-14", "Vijaynagar, Mysuru"),
-(54634, "2019-08-30", "Kuvempunagar, Mysuru"),
-(65738, "2021-01-21", "JSS Layout, Mysuru"),
-(66666, "2021-01-21", "JSS Layout, Mysuru"),
-(45562, "2024-04-05", "Mandya"),
-(49999, "2024-04-05", "kolkatta");
+(1001,'2021-03-15','Bangalore'),
+(1002,'2021-07-10','Mysore'),
+(1003,'2020-11-05','Chennai'),
+(1004,'2021-12-20','Hyderabad'),
+(1005,'2022-01-08','Pune');
 
 INSERT INTO OWNS VALUES
-("D111", "KA-20-AB-4223"),
-("D222", "KA-20-BC-5674"),
-("D333", "KA-21-AC-5473"),
-("D444", "KA-21-BD-4728"),
-("D222", "KA-09-MA-1234");
+('D1','KA09MA1234'),
+('D1','KA01AB1111'),
+('D2','KA02CD2222'),
+('D3','KA03EF3333'),
+('D4','KA04GH4444');
 
 INSERT INTO PARTICIPATED VALUES
-("D111", "KA-20-AB-4223", 43627, 20000),
-("D222", "KA-20-BC-5674", 56345, 49500),
-("D333", "KA-21-AC-5473", 63744, 15000),
-("D444", "KA-21-BD-4728", 54634, 5000),
-("D222", "KA-09-MA-1234", 65738, 25000),
-("D222", "KA-21-BD-4728", 45562, 50000),
-("D222", "KA-21-BD-4728", 49999, 50000);
+('D1','KA09MA1234',1001,5000),
+('D1','KA01AB1111',1002,3000),
+('D2','KA02CD2222',1002,4000),
+('D3','KA03EF3333',1003,2500),
+('D4','KA04GH4444',1004,6000);
 
-SELECT COUNT(*) 
-FROM accident 
-JOIN participated USING(report_no)
-WHERE accident_date >= '2021-01-01' 
-AND accident_date <= '2021-12-31';
+SELECT COUNT(DISTINCT O.driver_id)
+FROM OWNS O
+JOIN PARTICIPATED P ON O.regno = P.regno
+JOIN ACCIDENT A ON P.report_number = A.report_number
+WHERE YEAR(A.acc_date) = 2021;
 
-SELECT COUNT(*) 
-FROM accident 
-JOIN participated USING(report_no) 
-JOIN person USING(driver_id) 
-WHERE person.driver_name = 'Smith';
-
-INSERT INTO accident VALUES
-(46969, "2024-04-05", "Mandya");
-
-INSERT INTO participated VALUES
-("D555", "KA-21-BD-4728", 46969, 50000);
-
-DELETE FROM CAR 
-WHERE model = 'Mazda' 
-AND reg_no IN (
-    SELECT reg_no 
-    FROM OWNS 
-    JOIN PERSON USING(driver_id) 
-    WHERE driver_name = 'Smith'
-);
-
-SELECT * FROM CAR;
-
-UPDATE participated 
-SET damage_amount = 2000 
-WHERE reg_no = "KA-09-MA-1234"
-AND report_no = 65738;
-
-SELECT * FROM PARTICIPATED;
-
-CREATE OR REPLACE VIEW AccidentCars AS
-SELECT DISTINCT model, c_year
-FROM car 
-JOIN participated USING(reg_no);
-
-SELECT * FROM AccidentCars;
-
-DELIMITER //
-CREATE TRIGGER PreventParticipation
-BEFORE INSERT ON participated
-FOR EACH ROW
-BEGIN
-	IF 3 <= (SELECT COUNT(*) FROM PARTICIPATED WHERE driver_id = NEW.driver_id) THEN
-		SIGNAL SQLSTATE '45000' 
-        SET MESSAGE_TEXT = 'Driver already in 3 accidents';
-	END IF;
-END;//
-DELIMITER ;
+SELECT COUNT(*)
+FROM PARTICIPATED P
+JOIN OWNS O ON P.regno = O.regno
+JOIN PERSON S ON O.driver_id = S.driver_id
+WHERE S.name = 'Smith';
 
 INSERT INTO ACCIDENT VALUES
-(99999, "2024-04-05", "kolkatta");
+(1006,'2021-08-18','Tumkur');
 
+DELETE FROM CAR
+WHERE regno IN (
+    SELECT regno FROM OWNS
+    WHERE driver_id = (SELECT driver_id FROM PERSON WHERE name='Smith')
+) AND model='Mazda';
 
+UPDATE PARTICIPATED
+SET damage_amount = 8000
+WHERE regno='KA09MA1234' AND report_number=1001;
 
-DELIMITER //
-CREATE TRIGGER tr2
-BEFORE INSERT ON participated
+CREATE VIEW Accident_Car_Details AS
+SELECT DISTINCT C.model, C.year
+FROM CAR C
+JOIN PARTICIPATED P ON C.regno = P.regno;
+
+DELIMITER $$
+
+CREATE TRIGGER limit_accidents_per_year
+BEFORE INSERT ON PARTICIPATED
 FOR EACH ROW
 BEGIN
-	IF (
+    IF (
         SELECT COUNT(*)
-        FROM participated
-        JOIN accident USING(report_no)
-        WHERE driver_id = NEW.driver_id
-        AND YEAR(accident_date) = (
-            SELECT YEAR(accident_date) 
-            FROM accident 
-            WHERE report_no = NEW.report_no
+        FROM PARTICIPATED P
+        JOIN ACCIDENT A ON P.report_number = A.report_number
+        WHERE P.driver_id = NEW.driver_id
+        AND YEAR(A.acc_date) = (
+            SELECT YEAR(acc_date)
+            FROM ACCIDENT
+            WHERE report_number = NEW.report_number
         )
     ) >= 3 THEN
-		SIGNAL SQLSTATE '45000'
-        SET MESSAGE_TEXT = 'Driver already in 3 accidents';
-	END IF;
-END;//
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Driver cannot participate in more than 3 accidents in a year';
+    END IF;
+END$$
+
 DELIMITER ;
