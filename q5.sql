@@ -1,0 +1,159 @@
+DROP DATABASE IF EXISTS company;
+CREATE DATABASE company;
+USE company;
+
+CREATE TABLE EMPLOYEE (
+    SSN INT PRIMARY KEY,
+    EName VARCHAR(100),
+    Address VARCHAR(100),
+    Sex VARCHAR(10),
+    Salary DECIMAL(10,2),
+    SuperSSN INT,
+    DNo INT
+);
+
+CREATE TABLE DEPARTMENT (
+    DNo INT PRIMARY KEY,
+    DName VARCHAR(100),
+    MgrSSN INT,
+    MgrStartDate DATE,
+    FOREIGN KEY (MgrSSN) REFERENCES EMPLOYEE(SSN) ON DELETE CASCADE
+);
+
+CREATE TABLE DLOCATION (
+    DNo INT,
+    DLoc VARCHAR(200),
+    PRIMARY KEY (DNo, DLoc),
+    FOREIGN KEY (DNo) REFERENCES DEPARTMENT(DNo) ON DELETE CASCADE
+);
+
+CREATE TABLE PROJECT (
+    PNo INT PRIMARY KEY,
+    PName VARCHAR(50),
+    PLocation VARCHAR(100),
+    DNo INT,
+    FOREIGN KEY (DNo) REFERENCES DEPARTMENT(DNo) ON DELETE CASCADE
+);
+
+CREATE TABLE WORKS_ON (
+    SSN INT,
+    PNo INT,
+    Hours DECIMAL(6,2),
+    PRIMARY KEY (SSN, PNo),
+    FOREIGN KEY (SSN) REFERENCES EMPLOYEE(SSN) ON DELETE CASCADE,
+    FOREIGN KEY (PNo) REFERENCES PROJECT(PNo) ON DELETE CASCADE
+);
+
+INSERT INTO EMPLOYEE VALUES
+(111,'Scott','1st Main','Male',700000,112,1),
+(112,'Emma','2nd Main','Female',700000,NULL,1),
+(113,'Starc','3rd Main','Male',700000,112,1),
+(114,'Sophie','4th Main','Female',700000,112,2),
+(115,'Smith','5th Main','Female',700000,112,3),
+(116,'David','1st Main','Male',600000,112,2),
+(117,'Tom','2nd Main','Male',650000,NULL,3),
+(118,'Tim','3rd Main','Male',620000,112,4),
+(119,'Yash','4th Main','Female',800000,112,5),
+(110,'Smriti','5th Main','Female',900000,112,6);
+
+INSERT INTO DEPARTMENT VALUES
+(1,'Accounts',113,'2020-01-10'),
+(2,'Finance',114,'2020-02-10'),
+(3,'Research',115,'2020-03-10'),
+(4,'Sales',115,'2020-04-10'),
+(5,'Production',112,'2020-05-10'),
+(6,'Services',114,'2020-07-20');
+
+INSERT INTO DLOCATION VALUES
+(1,'London'),
+(2,'USA'),
+(3,'Qatar'),
+(4,'South Africa'),
+(5,'Australia'),
+(6,'India');
+
+INSERT INTO PROJECT VALUES
+(701,'Project1','London',1),
+(702,'Project2','USA',2),
+(703,'IoT','Qatar',3),
+(704,'Internet','South Africa',4),
+(705,'Project5','Australia',5);
+
+INSERT INTO WORKS_ON VALUES
+(111,701,120.1),
+(112,702,130.21),
+(113,703,130.41),
+(114,704,150.21),
+(115,705,90.89);
+
+SELECT PNo
+FROM PROJECT
+WHERE DNo IN (SELECT DNo FROM EMPLOYEE WHERE EName LIKE '%Scott%')
+OR DNo IN (
+    SELECT DNo FROM DEPARTMENT
+    WHERE MgrSSN IN (SELECT SSN FROM EMPLOYEE WHERE EName LIKE '%Scott%')
+);
+
+UPDATE EMPLOYEE
+SET Salary = Salary * 1.10
+WHERE SSN IN (
+    SELECT SSN
+    FROM WORKS_ON
+    WHERE PNo IN (SELECT PNo FROM PROJECT WHERE LOWER(PName)='iot')
+);
+
+SELECT SSN,EName,Salary
+FROM EMPLOYEE
+WHERE SSN IN (
+    SELECT SSN
+    FROM WORKS_ON
+    WHERE PNo IN (SELECT PNo FROM PROJECT WHERE LOWER(PName)='iot')
+);
+
+SELECT
+    SUM(E.Salary) AS TotalSalary,
+    MAX(E.Salary) AS MaxSalary,
+    MIN(E.Salary) AS MinSalary,
+    AVG(E.Salary) AS AvgSalary
+FROM EMPLOYEE E
+JOIN DEPARTMENT D ON E.DNo = D.DNo
+WHERE D.DName='Accounts';
+
+SELECT E.EName
+FROM EMPLOYEE E
+WHERE NOT EXISTS (
+    SELECT P.PNo
+    FROM PROJECT P
+    WHERE P.DNo=5
+    AND NOT EXISTS (
+        SELECT *
+        FROM WORKS_ON W
+        WHERE W.SSN=E.SSN AND W.PNo=P.PNo
+    )
+);
+
+SELECT DNo, COUNT(*) AS HighPaidEmployees
+FROM EMPLOYEE
+WHERE Salary > 600000
+GROUP BY DNo
+HAVING COUNT(*) > 5;
+
+CREATE OR REPLACE VIEW EmployeeView AS
+SELECT E.EName, D.DName, L.DLoc
+FROM EMPLOYEE E
+JOIN DEPARTMENT D ON E.DNo=D.DNo
+JOIN DLOCATION L ON D.DNo=L.DNo;
+
+DELIMITER //
+
+CREATE TRIGGER prevent_project_delete
+BEFORE DELETE ON PROJECT
+FOR EACH ROW
+BEGIN
+    IF EXISTS (SELECT * FROM WORKS_ON WHERE PNo = OLD.PNo) THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Project cannot be deleted because employees are working on it';
+    END IF;
+END//
+
+DELIMITER ;
