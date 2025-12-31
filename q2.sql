@@ -103,7 +103,7 @@ SELECT DISTINCT C.model, C.year
 FROM CAR C
 JOIN PARTICIPATED P ON C.regno = P.regno;
 
-DELIMITER $$
+DELIMITER //
 
 CREATE TRIGGER limit_accidents_per_year
 BEFORE INSERT ON PARTICIPATED
@@ -123,6 +123,6 @@ BEGIN
         SIGNAL SQLSTATE '45000'
         SET MESSAGE_TEXT = 'Driver cannot participate in more than 3 accidents in a year';
     END IF;
-END$$
+END//
 
 DELIMITER ;
