@@ -1,4 +1,3 @@
-DROP DATABASE IF EXISTS company;
 CREATE DATABASE company;
 USE company;
 
@@ -21,9 +20,8 @@ CREATE TABLE DEPARTMENT (
 );
 
 CREATE TABLE DLOCATION (
-    DNo INT,
+    DNo INT PRIMARY KEY,
     DLoc VARCHAR(200),
-    PRIMARY KEY (DNo, DLoc),
     FOREIGN KEY (DNo) REFERENCES DEPARTMENT(DNo) ON DELETE CASCADE
 );
 
@@ -39,26 +37,25 @@ CREATE TABLE WORKS_ON (
     SSN INT,
     PNo INT,
     Hours DECIMAL(6,2),
-    PRIMARY KEY (SSN, PNo),
     FOREIGN KEY (SSN) REFERENCES EMPLOYEE(SSN) ON DELETE CASCADE,
     FOREIGN KEY (PNo) REFERENCES PROJECT(PNo) ON DELETE CASCADE
 );
 
 INSERT INTO EMPLOYEE VALUES
-(111,'Scott','1st Main','Male',700000,112,1),
-(112,'Emma','2nd Main','Female',700000,NULL,1),
-(113,'Starc','3rd Main','Male',700000,112,1),
-(114,'Sophie','4th Main','Female',700000,112,2),
-(115,'Smith','5th Main','Female',700000,112,3),
-(116,'David','1st Main','Male',600000,112,2),
-(117,'Tom','2nd Main','Male',650000,NULL,3),
-(118,'Tim','3rd Main','Male',620000,112,4),
-(119,'Yash','4th Main','Female',800000,112,5),
-(110,'Smriti','5th Main','Female',900000,112,6);
+(111,'Scott','1st Main','Male',700000.00,112,1),
+(112,'Emma','2nd Main','Female',700000.00,NULL,1),
+(113,'Starc','3rd Main','Male',700000.00,112,1),
+(114,'Sophie','4th Main','Female',700000.00,112,1),
+(115,'Smith','5th Main','Female',700000.00,112,1),
+(116,'David','1st Main','Male',60000.00,112,2),
+(117,'Tom','2nd Main','Female',150000.00,NULL,3),
+(118,'Tim','3rd Main','Male',70000.00,112,4),
+(119,'Yash','4th Main','Female',80000.00,112,5),
+(110,'Smriti','5th Main','Female',90000.00,112,6);
 
 INSERT INTO DEPARTMENT VALUES
 (1,'Accounts',113,'2020-01-10'),
-(2,'Finance',114,'2020-02-10'),
+(2,'Finanace',114,'2020-02-10'),
 (3,'Research',115,'2020-03-10'),
 (4,'Sales',115,'2020-04-10'),
 (5,'Production',112,'2020-05-10'),
@@ -69,13 +66,12 @@ INSERT INTO DLOCATION VALUES
 (2,'USA'),
 (3,'Qatar'),
 (4,'South Africa'),
-(5,'Australia'),
-(6,'India');
+(5,'Australia');
 
 INSERT INTO PROJECT VALUES
 (701,'Project1','London',1),
 (702,'Project2','USA',2),
-(703,'IoT','Qatar',3),
+(703,'Iot','Qatar',3),
 (704,'Internet','South Africa',4),
 (705,'Project5','Australia',5);
 
@@ -86,20 +82,21 @@ INSERT INTO WORKS_ON VALUES
 (114,704,150.21),
 (115,705,90.89);
 
-SELECT PNo
+SELECT *
 FROM PROJECT
 WHERE DNo IN (SELECT DNo FROM EMPLOYEE WHERE EName LIKE '%Scott%')
 OR DNo IN (
-    SELECT DNo FROM DEPARTMENT
+    SELECT DNo
+    FROM DEPARTMENT
     WHERE MgrSSN IN (SELECT SSN FROM EMPLOYEE WHERE EName LIKE '%Scott%')
 );
 
 UPDATE EMPLOYEE
-SET Salary = Salary * 1.10
+SET Salary = Salary * 1.1
 WHERE SSN IN (
     SELECT SSN
     FROM WORKS_ON
-    WHERE PNo IN (SELECT PNo FROM PROJECT WHERE LOWER(PName)='iot')
+    WHERE PNo IN (SELECT PNo FROM PROJECT WHERE PName = 'Iot')
 );
 
 SELECT SSN,EName,Salary
@@ -107,53 +104,56 @@ FROM EMPLOYEE
 WHERE SSN IN (
     SELECT SSN
     FROM WORKS_ON
-    WHERE PNo IN (SELECT PNo FROM PROJECT WHERE LOWER(PName)='iot')
+    WHERE PNo IN (SELECT PNo FROM PROJECT WHERE PName = 'Iot')
 );
 
 SELECT
-    SUM(E.Salary) AS TotalSalary,
-    MAX(E.Salary) AS MaxSalary,
-    MIN(E.Salary) AS MinSalary,
-    AVG(E.Salary) AS AvgSalary
+SUM(E.Salary) AS TotalSalary,
+MAX(E.Salary) AS MaxSalary,
+MIN(E.Salary) AS MinSalary,
+AVG(E.Salary) AS AvgSalary
 FROM EMPLOYEE E
 JOIN DEPARTMENT D ON E.DNo = D.DNo
-WHERE D.DName='Accounts';
+WHERE D.DName = 'Accounts';
 
 SELECT E.EName
 FROM EMPLOYEE E
 WHERE NOT EXISTS (
     SELECT P.PNo
     FROM PROJECT P
-    WHERE P.DNo=5
+    WHERE P.DNo = 5
     AND NOT EXISTS (
-        SELECT *
+        SELECT W.PNo
         FROM WORKS_ON W
-        WHERE W.SSN=E.SSN AND W.PNo=P.PNo
+        WHERE W.SSN = E.SSN AND W.PNo = P.PNo
     )
 );
 
-SELECT DNo, COUNT(*) AS HighPaidEmployees
-FROM EMPLOYEE
-WHERE Salary > 600000
-GROUP BY DNo
-HAVING COUNT(*) > 5;
+SELECT D.DNo, COUNT(E.SSN) AS NumberOfEmployees
+FROM DEPARTMENT D
+JOIN EMPLOYEE E ON D.DNo = E.DNo
+WHERE E.Salary > 600000
+GROUP BY D.DNo
+HAVING COUNT(E.SSN) >= 5;
 
 CREATE OR REPLACE VIEW EmployeeView AS
-SELECT E.EName, D.DName, L.DLoc
+SELECT E.EName, D.DName, DL.DLoc
 FROM EMPLOYEE E
-JOIN DEPARTMENT D ON E.DNo=D.DNo
-JOIN DLOCATION L ON D.DNo=L.DNo;
+JOIN DEPARTMENT D ON E.DNo = D.DNo
+JOIN DLOCATION DL ON D.DNo = DL.DNo;
+
+SELECT * FROM EmployeeView;
 
 DELIMITER //
-
-CREATE TRIGGER prevent_project_delete
+CREATE TRIGGER PREVENT_DELETE
 BEFORE DELETE ON PROJECT
 FOR EACH ROW
 BEGIN
-    IF EXISTS (SELECT * FROM WORKS_ON WHERE PNo = OLD.PNo) THEN
+    IF EXISTS (SELECT 1 FROM WORKS_ON WHERE PNo = OLD.PNo) THEN
         SIGNAL SQLSTATE '45000'
-        SET MESSAGE_TEXT = 'Project cannot be deleted because employees are working on it';
+        SET MESSAGE_TEXT = 'The project cannot be deleted as it has an assigned employee';
     END IF;
 END//
-
 DELIMITER ;
+
+DELETE FROM PROJECT WHERE PNo = 702;
