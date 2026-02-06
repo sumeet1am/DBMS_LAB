@@ -96,32 +96,36 @@ WHERE dept = 'CS'
 ORDER BY book_title;
 
 
-SELECT C.dept
-FROM COURSE C
-WHERE NOT EXISTS (
-    SELECT *
-    FROM BOOK_ADOPTION BA
-    JOIN TEXT T ON BA.book_isbn = T.book_isbn
-    WHERE BA.course = C.course
-    AND T.publisher <> 'Pearson'
+SELECT DISTINCT dept
+FROM COURSE
+WHERE dept IN (
+    SELECT dept
+    FROM COURSE
+    JOIN BOOK_ADOPTION USING(course)
+    JOIN TEXT USING(book_isbn)
+    WHERE publisher = 'Pearson'
+)
+AND dept NOT IN (
+    SELECT dept
+    FROM COURSE
+    JOIN BOOK_ADOPTION USING(course)
+    JOIN TEXT USING(book_isbn)
+    WHERE publisher <> 'Pearson'
 );
 
-SELECT S.regno, S.name
+
+SELECT S.regno, S.name, E.marks
 FROM STUDENT S
 JOIN ENROLL E ON S.regno = E.regno
 JOIN COURSE C ON E.course = C.course
 WHERE C.cname = 'DBMS'
-AND E.marks = (
-    SELECT MAX(marks)
-    FROM ENROLL
-    WHERE course = C.course
-);
+ORDER BY E.marks DESC
+LIMIT 1;
 
-CREATE VIEW Student_Course_Marks AS
-SELECT S.regno, S.name, C.cname, E.marks
-FROM STUDENT S
-JOIN ENROLL E ON S.regno = E.regno
-JOIN COURSE C ON E.course = C.course;
+CREATE OR REPLACE VIEW StudentCourses AS
+SELECT regno, course, cname, marks
+FROM ENROLL 
+JOIN COURSE USING(course);
 
 DELIMITER //
 
