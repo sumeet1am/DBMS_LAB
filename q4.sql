@@ -82,14 +82,19 @@ INSERT INTO TEXT VALUES
 INSERT INTO BOOK_ADOPTION VALUES
 (103,6,1006);
 
-SELECT BA.course, BA.book_isbn, T.book_title
-FROM BOOK_ADOPTION BA
-JOIN COURSE C ON BA.course = C.course
-JOIN TEXT T ON BA.book_isbn = T.book_isbn
-WHERE C.dept = 'CS'
-GROUP BY BA.course, BA.book_isbn, T.book_title
-HAVING COUNT(BA.book_isbn) > 2
-ORDER BY T.book_title;
+SELECT course, book_isbn, book_title
+FROM BOOK_ADOPTION
+JOIN COURSE USING (course)
+JOIN TEXT USING (book_isbn)
+WHERE dept = 'CS'
+  AND course IN (
+        SELECT course
+        FROM BOOK_ADOPTION
+        GROUP BY course
+        HAVING COUNT(*) > 2
+  )
+ORDER BY book_title;
+
 
 SELECT C.dept
 FROM COURSE C
